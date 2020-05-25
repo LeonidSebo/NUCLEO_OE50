@@ -13,8 +13,8 @@ extern irq_flg_t  irq_flg;
 device_state_t lcos_state = {0};
 device_state_t asic_state = {0};
 
-uint16_t asic_BasePoz_Hor;
-uint16_t asic_BasePoz_Ver;
+int16_t asic_BasePos_Hor;
+int16_t asic_BasePos_Ver;
 
 void lcos_flip(void ){
 	uint8_t ctrlReg = (pConfigStruct->flipScreenHor<<7)+(pConfigStruct->flipScreenVer<<6)+0x21;
@@ -28,31 +28,29 @@ void lcos_flip(void ){
 }
 
 void asic_ScreenOffset_Hor(void){
-	asic_BasePoz_Hor += pConfigStruct->screenOffsetHor;
-	sw_error = HAL_I2C_Mem_Write(&hi2c1, ASIC_I2C_ADDR<<1, HX7816_INP_HSTART_ADDR, sizeof(uint8_t), (uint8_t*)&asic_BasePoz_Hor, sizeof(asic_BasePoz_Hor), I2C_TX_TIMEOUT);
+	int16_t ScrPos = asic_BasePos_Hor + pConfigStruct->screenOffsetHor;
+	sw_error = HAL_I2C_Mem_Write(&hi2c1, ASIC_I2C_ADDR<<1, HX7816_INP_HSTART_ADDR, sizeof(uint8_t), (uint8_t*)&ScrPos, sizeof(ScrPos), I2C_TX_TIMEOUT);
 	if(sw_error == HAL_OK){
 		asic_state.i2c_error = 0;
 	} else{
 		asic_state.i2c_error = 1;
-//		irq_flg.irq_ASIC = 1;
 	}
 }
 void asic_ScreenOffset_Ver(void){
-	asic_BasePoz_Ver += pConfigStruct->screenOffsetVer;
-	sw_error = HAL_I2C_Mem_Write(&hi2c1, ASIC_I2C_ADDR<<1, HX7816_INP_VSTART_ADDR, sizeof(uint8_t), (uint8_t*)&asic_BasePoz_Ver, sizeof(asic_BasePoz_Ver), I2C_TX_TIMEOUT);
+	int16_t ScrPos = asic_BasePos_Ver + pConfigStruct->screenOffsetVer;
+	sw_error = HAL_I2C_Mem_Write(&hi2c1, ASIC_I2C_ADDR<<1, HX7816_INP_VSTART_ADDR, sizeof(uint8_t), (uint8_t*)&ScrPos, sizeof(ScrPos), I2C_TX_TIMEOUT);
 	if(sw_error == HAL_OK){
 		asic_state.i2c_error = 0;
 	} else{
 		asic_state.i2c_error = 1;
-//		irq_flg.irq_ASIC = 1;
 	}
 }
 
 void asic_GetScreenPos(uint16_t* pBasePoz_Hor, uint16_t* pBasePoz_Ver){
-	sw_error = HAL_I2C_Mem_Read(&hi2c1, ASIC_I2C_ADDR<<1, HX7816_INP_HSTART_ADDR, sizeof(uint8_t),(uint8_t*)&asic_BasePoz_Hor, sizeof(asic_BasePoz_Hor), I2C_RX_TIMEOUT);
+	sw_error = HAL_I2C_Mem_Read(&hi2c1, ASIC_I2C_ADDR<<1, HX7816_INP_HSTART_ADDR, sizeof(uint8_t),(uint8_t*)&asic_BasePos_Hor, sizeof(asic_BasePos_Hor), I2C_RX_TIMEOUT);
 	if(sw_error == HAL_OK){
 		asic_state.i2c_error = 0;
-		sw_error = HAL_I2C_Mem_Read(&hi2c1, ASIC_I2C_ADDR<<1, HX7816_INP_VSTART_ADDR, sizeof(uint8_t), (uint8_t*)&asic_BasePoz_Ver, sizeof(asic_BasePoz_Ver), I2C_RX_TIMEOUT);
+		sw_error = HAL_I2C_Mem_Read(&hi2c1, ASIC_I2C_ADDR<<1, HX7816_INP_VSTART_ADDR, sizeof(uint8_t), (uint8_t*)&asic_BasePos_Ver, sizeof(asic_BasePos_Ver), I2C_RX_TIMEOUT);
 	}
 	if(sw_error != HAL_OK){
 		asic_state.i2c_error = 1;

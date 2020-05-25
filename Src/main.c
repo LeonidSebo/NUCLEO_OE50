@@ -89,8 +89,8 @@ device_state_t	vga2rgb_state = {0};
 extern uart_msg_t uart_msg;
 extern uint8_t RdByteReady;
 extern led_drv_state_t led_drv_state;
-extern uint16_t asic_BasePoz_Hor;
-extern uint16_t asic_BasePoz_Ver;
+extern uint16_t asic_BasePos_Hor;
+extern uint16_t asic_BasePos_Ver;
 extern device_state_t lcos_state;
 extern device_state_t asic_state;
 extern device_state_t	imu_state;
@@ -705,7 +705,7 @@ static void init_periferial(uint8_t boot)
 		if(sw_error==HAL_OK){
 			asic_SetPattern(ASIC_PATTERN_GRAY_SCASLE,0);
 			if(sw_error==HAL_OK){
-				asic_GetScreenPos(&asic_BasePoz_Hor, &asic_BasePoz_Ver);
+				asic_GetScreenPos(&asic_BasePos_Hor, &asic_BasePos_Ver);
 				asic_ScreenOffset_Hor();
 				asic_ScreenOffset_Ver();
 				boot_BIT_status.ASIC_init_status = DEV_INITIALISED;
@@ -895,7 +895,7 @@ static void SetPowerMode(uint8_t NewPowerMode) {
 		break;
 	}
 }
-void ReinitAnalogWDT(void){
+void ADC_UpdateThresholds(void){
 	uint32_t delta_CAL_TEMP = (int32_t)(TEMPSENSOR_CAL2_TEMP - TEMPSENSOR_CAL1_TEMP);
 	uint32_t ts_delta_cal = (int32_t)((int32_t)*TEMPSENSOR_CAL2_ADDR - (int32_t)*TEMPSENSOR_CAL1_ADDR);
 

@@ -431,14 +431,14 @@ HAL_StatusTypeDef uartReqHandler(void){
 		}else if(uart_msg.request[UART_REQ_DATA_OFFSET] == 1){
 			run_BIT((BIT_status_t*)(PageBuf+2));
 		}else{
-			PageBuf[0] = UART_ANSW_PARAM_ERROR;
+			PageBuf[0] = UART_NACK_BAD_PARAM;
 			DataLen = 1;
-			RespType = UART_ERROR_CMD;
+			RespType = UART_NACK_CMD;
 		}
 		break;
 	case SET_TEMP_MIN_MAX:
 		memcpy((uint8_t*)&(pConfigStruct->temperature_min),uart_msg.request+UART_REQ_DATA_OFFSET,TEMP_MINMAX_SIZE);
-		ReinitAnalogWDT();
+		ADC_UpdateThresholds();
 		break;
 	case GET_INTR_DATA:
 		RespType = UART_RESPONSE;
@@ -572,10 +572,10 @@ HAL_StatusTypeDef uartReqHandler(void){
 		if(NextPowerMode<= PWR_MODE_MAX){
 			main_status.pwrModeChange_req = 1;
 		}else{
-			PageBuf[0] = UART_ANSW_PARAM_ERROR;
+			PageBuf[0] = UART_NACK_BAD_PARAM;
 			pData = PageBuf;
 			DataLen = 1;
-			RespType = UART_ERROR_CMD;
+			RespType = UART_NACK_CMD;
 		}
 		break;
 	case GET_A2D:
@@ -599,16 +599,20 @@ HAL_StatusTypeDef uartReqHandler(void){
 		}else{
 			VDDA_mv = VDDA;
 		}
+#if 0
 		float_buf = (float)__HAL_ADC_CALC_TEMPERATURE(VDDA_mv, adc_raw_data[RAW_ADC_TEMP_OFFSET], ADC_RESOLUTION_12B);
+#else
+		float_buf = ((( ((float)((adc_raw_data[RAW_ADC_TEMP_OFFSET]* VDDA_mv) / TEMPSENSOR_CAL_VREFANALOG) - (int32_t) *TEMPSENSOR_CAL1_ADDR)) * (int32_t)(TEMPSENSOR_CAL2_TEMP - TEMPSENSOR_CAL1_TEMP)) / (int32_t)((int32_t)*TEMPSENSOR_CAL2_ADDR - (int32_t)*TEMPSENSOR_CAL1_ADDR)) + TEMPSENSOR_CAL1_TEMP;
+#endif
 		memcpy(PageBuf,&float_buf,sizeof(float));
 		break;
 	case SAVE_REGION_2_FLASH:
 		get_flash_region(uart_msg.request[UART_REQ_DATA_OFFSET],&Address, &RespType);
 		if(RespType == UART_ERROR_CMD){
-			PageBuf[0] = UART_ANS_BAD_CMD_PARAM_ERR;
+			PageBuf[0] = UART_NACK_BAD_PARAM;
 			pData = PageBuf;
 			DataLen = 1;
-			RespType = UART_ERROR_CMD;
+			RespType = UART_NACK_CMD;
 			Error_Handler();
 			break;
 		}
@@ -643,10 +647,10 @@ HAL_StatusTypeDef uartReqHandler(void){
 	case LOAD_REGION_2_RAM:
 		get_flash_region(uart_msg.request[UART_REQ_DATA_OFFSET],&Address, &RespType);
 		if(RespType == UART_ERROR_CMD){
-			PageBuf[0] = UART_ANS_BAD_CMD_PARAM_ERR;
+			PageBuf[0] = UART_NACK_BAD_PARAM;
 			pData = PageBuf;
 			DataLen = 1;
-			RespType = UART_ERROR_CMD;
+			RespType = UART_NACK_CMD;
 			Error_Handler();
 			break;
 		}
@@ -658,10 +662,10 @@ HAL_StatusTypeDef uartReqHandler(void){
 	case GET_DATA_FROM_REGION:
 		pData = getRamRegion(uart_msg.request[UART_REQ_DATA_OFFSET],&DataLen);
 		if(DataLen == 0){
-			PageBuf[0] = UART_ANS_BAD_CMD_PARAM_ERR;
+			PageBuf[0] = UART_NACK_BAD_PARAM;
 			pData = PageBuf;
 			DataLen = 1;
-			RespType = UART_ERROR_CMD;
+			RespType = UART_NACK_CMD;
 			Error_Handler();
 			break;
 		}
@@ -670,10 +674,10 @@ HAL_StatusTypeDef uartReqHandler(void){
 		len = uart_msg.request[UART_REQ_DATA_OFFSET+3];
 		len += uart_msg.request[UART_REQ_DATA_OFFSET+4]<<8;
 		if((offset + len)>DataLen){
-			PageBuf[0] = UART_ANS_BAD_CMD_PARAM_ERR;
+			PageBuf[0] = UART_NACK_BAD_PARAM;
 			pData = PageBuf;
 			DataLen = 1;
-			RespType = UART_ERROR_CMD;
+			RespType = UART_NACK_CMD;
 			Error_Handler();
 			break;
 		}
@@ -685,10 +689,10 @@ HAL_StatusTypeDef uartReqHandler(void){
 		pData = getRamRegion(uart_msg.request[UART_REQ_DATA_OFFSET],&DataLen); //region size
 //		pData = FlashCopyDevInfo;
 		if(DataLen == 0){
-			PageBuf[0] = UART_ANS_BAD_CMD_PARAM_ERR;
+			PageBuf[0] = UART_NACK_BAD_PARAM;
 			pData = PageBuf;
 			DataLen = 1;
-			RespType = UART_ERROR_CMD;
+			RespType = UART_NACK_CMD;
 			Error_Handler();
 			break;
 		}
@@ -697,10 +701,10 @@ HAL_StatusTypeDef uartReqHandler(void){
 		len = uart_msg.request[UART_REQ_DATA_OFFSET+3];
 		len += uart_msg.request[UART_REQ_DATA_OFFSET+4]<<8;
 		if((offset + len)>DataLen){
-			PageBuf[0] = UART_ANS_BAD_CMD_PARAM_ERR;
+			PageBuf[0] = UART_NACK_BAD_PARAM;
 			pData = PageBuf;
 			DataLen = 1;
-			RespType = UART_ERROR_CMD;
+			RespType = UART_NACK_CMD;
 			Error_Handler();
 			break;
 		}
@@ -712,10 +716,10 @@ HAL_StatusTypeDef uartReqHandler(void){
 		HAL_FLASH_Unlock();
 		get_flash_region(uart_msg.request[UART_REQ_DATA_OFFSET],&Address, &RespType);
 		if(RespType == UART_ERROR_CMD){
-			PageBuf[0] = UART_ANS_BAD_CMD_PARAM_ERR;
+			PageBuf[0] = UART_NACK_BAD_PARAM;
 			pData = PageBuf;
 			DataLen = 1;
-			RespType = UART_ERROR_CMD;
+			RespType = UART_NACK_CMD;
 			Error_Handler();
 			break;
 		}
@@ -768,9 +772,9 @@ HAL_StatusTypeDef uartReqHandler(void){
 		RespType = UART_RESPONSE;
 		get_flash_region(uart_msg.request[UART_REQ_DATA_OFFSET],&Address, &RespType);
 		if(RespType == UART_ERROR_CMD){
-			PageBuf[0] = UART_ANS_BAD_CMD_PARAM_ERR;
+			PageBuf[0] = UART_NACK_BAD_PARAM;
 			pData = PageBuf;
-			RespType = UART_ERROR_CMD;
+			RespType = UART_NACK_CMD;
 			DataLen = 1;
 			Error_Handler();
 		}else{
@@ -791,10 +795,10 @@ HAL_StatusTypeDef uartReqHandler(void){
 	case ERASE_STORAGE_PAGE:
 		erase_page(uart_msg.request[UART_REQ_DATA_OFFSET],uart_msg.request[UART_REQ_DATA_OFFSET+1],&RespType);
 		if(RespType == UART_ERROR_CMD){
-			PageBuf[0] = UART_ANS_BAD_CMD_PARAM_ERR;
+			PageBuf[0] = UART_NACK_BAD_PARAM;
 			pData = PageBuf;
 			DataLen = 1;
-			RespType = UART_ERROR_CMD;
+			RespType = UART_NACK_CMD;
 			Error_Handler();
 		}
 		break;
@@ -804,10 +808,11 @@ HAL_StatusTypeDef uartReqHandler(void){
 		}else if(uart_msg.request[UART_REQ_DATA_OFFSET]==1){
 			pi2c_bus = &hi2c3;
 		}else{
-			PageBuf[0] = UART_ANSW_BAD_I2C_BUSS_ID_ERR;
+			PageBuf[0] = UART_NACK_BAD_PARAM;
 			DataLen = 1;
-			RespType = UART_ERROR_CMD;
+			RespType = UART_NACK_CMD;
 			pData = PageBuf;
+			break;
 		}
 		PageBuf[0] = uart_msg.request[UART_REQ_DATA_OFFSET+1]<<1; //device address
 		PageBuf[1] = uart_msg.request[UART_REQ_DATA_OFFSET+2]; //register address
@@ -815,7 +820,7 @@ HAL_StatusTypeDef uartReqHandler(void){
 		for(i=0;i<PageBuf[2];i++){
 			PageBuf[3+i] = uart_msg.request[UART_REQ_DATA_OFFSET+4+i];	// data
 		}
-		sw_error = HAL_I2C_Mem_Write(pi2c_bus,PageBuf[0], PageBuf[1], sizeof(uint8_t), PageBuf+3, PageBuf[2], I2C_TX_TIMEOUT);
+		sw_error = HAL_I2C_Mem_Write(pi2c_bus,PageBuf[0], PageBuf[1], 1, PageBuf+3, PageBuf[2], I2C_TX_TIMEOUT);
 		if(sw_error != HAL_OK){
 			PageBuf[0] = UART_ANSW_I2C_ERROR;
 			DataLen = 1;
@@ -824,20 +829,22 @@ HAL_StatusTypeDef uartReqHandler(void){
 		}
 		break;
 	case I2C_READ:
+		pData = PageBuf;
 		if(uart_msg.request[UART_REQ_DATA_OFFSET]==0){
 			pi2c_bus = &hi2c1;
 		}else if(uart_msg.request[UART_REQ_DATA_OFFSET]==1){
 			pi2c_bus = &hi2c3;
 		}else{
-			PageBuf[0] = UART_ANSW_BAD_I2C_BUSS_ID_ERR;
+			PageBuf[0] = UART_NACK_BAD_PARAM;
 			DataLen = 1;
-			RespType = UART_ERROR_CMD;
-			pData = PageBuf;
+			RespType = UART_NACK_CMD;
+			break;
 		}
-		PageBuf[0] = uart_msg.request[UART_REQ_DATA_OFFSET+1]<<1; //device address
-		PageBuf[1] = uart_msg.request[UART_REQ_DATA_OFFSET+2]; //register address
-		PageBuf[2] = uart_msg.request[UART_REQ_DATA_OFFSET+3];	// data count
-		sw_error = HAL_I2C_Mem_Read(pi2c_bus, PageBuf[0], PageBuf[1], sizeof(uint8_t), PageBuf+3, PageBuf[2], I2C_TX_TIMEOUT);
+		PageBuf[0] = uart_msg.request[UART_REQ_DATA_OFFSET];  		//Number of I2C bus:
+		PageBuf[1] = uart_msg.request[UART_REQ_DATA_OFFSET+1]<<1; 	//device address
+		PageBuf[2] = uart_msg.request[UART_REQ_DATA_OFFSET+2]; 		//register address
+		len = uart_msg.request[UART_REQ_DATA_OFFSET+3];				// data count
+		sw_error = HAL_I2C_Mem_Read(pi2c_bus, PageBuf[1], PageBuf[2], 1, PageBuf+3, len, I2C_RX_TIMEOUT);
 		if(sw_error != HAL_OK){
 			PageBuf[0] = UART_ANSW_I2C_ERROR;
 			RespType = UART_ERROR_CMD;
@@ -845,9 +852,9 @@ HAL_StatusTypeDef uartReqHandler(void){
 			pData = PageBuf;
 		}else{
 			RespType = UART_RESPONSE;
-			DataLen = PageBuf[2];
-			pData = PageBuf+3;
+			DataLen = len+3;
 		}
+		break;
 	case RUN_SCRIPT:
 		len = (uart_msg.request[UART_REQ_MSG_LEN_OFFSET]+(uint16_t)(uart_msg.request[UART_REQ_MSG_LEN_OFFSET+1]<<8) - UART_EMPTY_RESP_LEN)/SCRIPT_RECORD_SIZE;
 		runScript(uart_msg.request+UART_REQ_DATA_OFFSET,len);
@@ -866,7 +873,6 @@ HAL_StatusTypeDef uartReqHandler(void){
 		break;
 	}
 	UART_Tx(pData, DataLen, RespType);
-
 	return HAL_OK;
 }
 
@@ -958,7 +964,6 @@ static uint16_t GetIntrData(void){
 
 	if(irq_flg.irq_IMU){
 		NumOfInterrupts++;
-//		while(main_status.I2C_dataReady==0){};	// wait for finish IMU reading
 		PageBuf[i++] = INT_IMU;
 		PageBuf[i++] = IMU_GIRO_DATA_LEN+IMU_ACCSEL_DATA_LEN+IMU_TEMP_DATA_LEN;
 		PageBuf[i++] = 0;
@@ -1083,13 +1088,12 @@ static void imu_cmd(uint8_t* pCmd,uint16_t* DataLen,uint8_t* RespType){
 			PageBuf[0] = UART_ANSW_I2C_ERROR;
 		}
 	}else{
-		*RespType = UART_ERROR_CMD;
+		PageBuf[0] = UART_NACK_BAD_PARAM;
 		*DataLen = 1;
-		PageBuf[0] = UART_ANS_BAD_CMD_PARAM_ERR;
+		*RespType = UART_NACK_CMD;
 	}
 }
 static uint8_t* getRamRegion(uint8_t regID, uint16_t* DataLen){
-//	uint16_t DataLen;
 	uint8_t* pData;
 	switch(regID){
 	case FLASH_DEVICE_INFO_ID:

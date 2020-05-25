@@ -163,7 +163,7 @@ void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
 void runScript(uint8_t* BaseAddr, uint16_t recordNum);
-void ReinitAnalogWDT(void);
+void ADC_UpdateThresholds(void);
 void ADC_Calc(void);
 
 /* USER CODE END EFP */
